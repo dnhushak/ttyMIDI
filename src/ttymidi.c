@@ -545,7 +545,7 @@ void* read_midi_from_serial_port(void* seq) {
 	/* Lets first fast forward to first status byte... */
 	if (!arguments.printonly) {
 		do
-			read(serial, buf, 1);
+			read(serial, &buf, 1);
 		while (buf[0] >> 7 == 0);
 	}
 
@@ -557,7 +557,7 @@ void* read_midi_from_serial_port(void* seq) {
 
 		if (arguments.printonly) {
 			read(serial, buf, 1);
-			printf("%x\t", (int) buf[0] & 0xFF);
+			printf("%x\t", (int) buf & 0xFF);
 			fflush(stdout);
 			continue;
 		}
