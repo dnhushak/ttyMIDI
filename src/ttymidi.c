@@ -546,7 +546,7 @@ void* read_midi_from_serial_port(void* seq) {
 	if (!arguments.printonly) {
 		do
 			read(serial, &buf, 1);
-		while (buf[0] >> 7 == 0);
+		while (buf >> 7 == 0);
 	}
 
 	while (run) {
