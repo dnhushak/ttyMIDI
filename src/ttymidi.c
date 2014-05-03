@@ -31,14 +31,8 @@
 // Alsa-Specific
 #include <asm/ioctls.h>
 #include <alsa/asoundlib.h>
-#include <linux/slab.h>
 #include <linux/errno.h>
 #include <linux/string.h>
-#include <linux/module.h>
-#include <sound/core.h>
-#include <sound/seq_kernel.h>
-#include <sound/seq_midi_event.h>
-#include <sound/asoundef.h>
 
 #define FALSE                         0
 #define TRUE                          1
