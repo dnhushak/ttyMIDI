@@ -393,20 +393,11 @@ void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf) {
 	snd_seq_drain_output(seq);
 }
 
-void alsa_write_byte(snd_seq_t* seq, int port_out_id, unsigned char byte) {
+void alsa_write_byte(snd_seq_t* seq, int port_out_id, unsigned char byte,
+		snd_seq_event_t ev) {
 	// MIDI parser and encoder
 	snd_midi_event_t * parser;
 	snd_midi_event_new(128, &parser);
-	// The event to send
-	snd_seq_event_t ev;
-	// Initialize event record
-	// Set direct passing mode (without queued)
-//	snd_seq_ev_set_direct(&ev);
-//	// Set the source port
-//	snd_seq_ev_set_source(&ev, port_out_id);
-//	// Set broadcasting to subscribers
-//	snd_seq_ev_set_subs(&ev);
-//	// Encode the bytes to the event
 	int res = snd_midi_event_encode_byte(parser, byte, &ev);
 	printf("Encoded byte %d with outcome %d\n", byte, res);
 	if (res == 1) {
@@ -415,7 +406,7 @@ void alsa_write_byte(snd_seq_t* seq, int port_out_id, unsigned char byte) {
 		// Output the event
 		snd_seq_event_output(seq, &ev);
 		snd_seq_drain_output(seq);
-	snd_seq_ev_clear(&ev);
+		snd_seq_ev_clear(&ev);
 	}
 }
 
@@ -543,6 +534,16 @@ void* read_midi_from_alsa(void* seq) {
 
 void* read_midi_from_serial_port(void* seq) {
 	unsigned char buf;
+	snd_seq_event_t ev;
+	// The event to send
+	// Initialize event record
+	// Set direct passing mode (without queued)
+	snd_seq_ev_set_direct(&ev);
+	// Set the source port
+	snd_seq_ev_set_source(&ev, port_out_id);
+	// Set broadcasting to subscribers
+	snd_seq_ev_set_subs(&ev);
+	// Encode the bytes to the event
 	
 	/* Lets first fast forward to first status byte... */
 	if (!arguments.printonly) {
@@ -563,7 +564,7 @@ void* read_midi_from_serial_port(void* seq) {
 			continue;
 		}
 
-		alsa_write_byte(seq, port_out_id, buf);
+		alsa_write_byte(seq, port_out_id, buf, ev);
 	}
 }
 
