@@ -402,21 +402,21 @@ void alsa_write_byte(snd_seq_t* seq, int port_out_id, unsigned char byte) {
 	// Initialize event record
 	snd_seq_ev_clear(&ev);
 	// Set direct passing mode (without queued)
-	snd_seq_ev_set_direct(&ev);
-	// Set the source port
-	snd_seq_ev_set_source(&ev, port_out_id);
-	// Set broadcasting to subscribers
-	snd_seq_ev_set_subs(&ev);
-	// Encode the bytes to the event
-	int err = snd_midi_event_encode_byte(parser, byte, &ev);
-	printf("Encoded byte %d with outcome %d\n", byte, err);
-	if ( err == 1) {
+//	snd_seq_ev_set_direct(&ev);
+//	// Set the source port
+//	snd_seq_ev_set_source(&ev, port_out_id);
+//	// Set broadcasting to subscribers
+//	snd_seq_ev_set_subs(&ev);
+//	// Encode the bytes to the event
+	int res = snd_midi_event_encode_byte(parser, byte, &ev);
+	printf("Encoded byte %d with outcome %d\n", byte, res);
+	if (res == 1) {
 		// If the event is complete, encode byte will return 1
 		printf("Encoded byte: %d\n", byte);
 		// Output the event
 		snd_seq_event_output(seq, &ev);
+		snd_seq_drain_output(seq);
 	}
-	snd_seq_drain_output(seq);
 }
 
 void write_midi_action_to_serial_port(snd_seq_t* seq_handle) {
