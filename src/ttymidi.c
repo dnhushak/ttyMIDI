@@ -555,14 +555,12 @@ void* read_midi_from_serial_port(void* seq) {
 		 * comes through the serial port.
 		 */
 
+		read(serial, &buf, 1);
 		if (arguments.printonly) {
-			read(serial, buf, 1);
 			printf("%x\t", (int) buf & 0xFF);
 			fflush(stdout);
 			continue;
 		}
-
-		read(serial, &buf, 1);
 
 		alsa_write_byte(seq, port_out_id, buf);
 	}
