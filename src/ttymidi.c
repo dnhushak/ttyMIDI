@@ -22,14 +22,15 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <stdio.h>
-#include <argp.h>
-#include <alsa/asoundlib.h>
 #include <signal.h>
 #include <pthread.h>
 // Linux-specific
+#include <argp.h>
 #include <linux/serial.h>
 #include <linux/ioctl.h>
+// Alsa-Specific
 #include <asm/ioctls.h>
+#include <alsa/asoundlib.h>
 
 #define FALSE                         0
 #define TRUE                          1
@@ -153,8 +154,8 @@ void arg_set_defaults(arguments_t *arguments) {
 	strncpy(arguments->name, name_tmp, MAX_DEV_STR_LEN);
 }
 
-const char *argp_program_version = "ttymidi 0.60";
-const char *argp_program_bug_address = "tvst@hotmail.com";
+const char *argp_program_version = "ttymidi 0.70";
+const char *argp_program_bug_address = "dnhushak@pinnacle-recording.com";
 static char doc[] =
 		"ttymidi - Connect serial port devices to ALSA MIDI programs!";
 static struct argp argp = { options, parse_opt, 0, doc };
@@ -538,8 +539,9 @@ void* read_midi_from_alsa(void* seq) {
 }
 
 void* read_midi_from_serial_port(void* seq) {
-	char buf[3], msg[MAX_MSG_SIZE];
-	int i, msglen;
+	char buf;
+	char msg[MAX_MSG_SIZE];
+	int msglen;
 	
 	/* Lets first fast forward to first status byte... */
 	if (!arguments.printonly) {
@@ -561,62 +563,9 @@ void* read_midi_from_serial_port(void* seq) {
 			continue;
 		}
 
-		/* 
-		 * so let's align to the beginning of a midi command.
-		 */
+		read(serial, &buf, 1);
 
-		int i = 1;
-
-		while (i < 3) {
-			read(serial, buf + i, 1);
-
-			if (buf[i] >> 7 != 0) {
-				/* Status byte received and will always be first bit!*/
-				buf[0] = buf[i];
-				i = 1;
-			} else {
-				/* Data byte received */
-				if (i == 2) {
-					/* It was 2nd data byte so we have a MIDI event
-					 process! */
-					i = 3;
-				} else {
-					/* Lets figure out are we done or should we read one more byte. */
-					if ((buf[0] & 0xF0) == 0xC0 || (buf[0] & 0xF0) == 0xD0) {
-						i = 3;
-					} else {
-						i = 2;
-					}
-				}
-			}
-
-		}
-
-		/* print comment message (the ones that start with 0xFF 0x00 0x00 */
-		if (buf[0] == (char) 0xFF && buf[1] == (char) 0x00
-				&& buf[2] == (char) 0x00) {
-			read(serial, buf, 1);
-			msglen = buf[0];
-			if (msglen > MAX_MSG_SIZE - 1)
-				msglen = MAX_MSG_SIZE - 1;
-
-			read(serial, msg, msglen);
-
-			if (arguments.silent)
-				continue;
-
-			/* make sure the string ends with a null character */
-			msg[msglen] = 0;
-
-			puts("0xFF Non-MIDI message: ");
-			puts(msg);
-			putchar('\n');
-			fflush(stdout);
-		}
-
-		/* parse MIDI message */
-		else
-			parse_midi_command(seq, port_out_id, buf);
+		alsa_write_byte(seq, port_out_id, buf);
 	}
 }
 
