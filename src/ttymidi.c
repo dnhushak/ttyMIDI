@@ -410,10 +410,8 @@ void alsa_write_byte(snd_seq_t* seq, int port_out_id, unsigned char byte,
 	snd_seq_ev_set_subs(&ev);
 	// Encode the bytes to the event
 	int res = snd_midi_event_encode_byte(parser, byte, &ev);
-	printf("Encoded byte %d with outcome %d\n", byte, res);
 	if (res == 1) {
 		// If the event is complete, encode byte will return 1
-		printf("Encoded byte: %d\n", byte);
 		// Output the event
 		snd_seq_event_output(seq, &ev);
 		snd_seq_drain_output(seq);
