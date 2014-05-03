@@ -407,9 +407,10 @@ void alsa_write_byte(snd_seq_t* seq, int port_out_id, unsigned char byte) {
 	snd_seq_ev_set_source(&ev, port_out_id);
 	// Set broadcasting to subscribers
 	snd_seq_ev_set_subs(&ev);
-	printf("Attempting %d\n", byte);
 	// Encode the bytes to the event
-	if (snd_midi_event_encode_byte(parser, byte, &ev) == 1) {
+	int err = snd_midi_event_encode_byte(parser, byte, &ev);
+	printf("Encoded byte %d with outcome %d\n", byte, err);
+	if ( err == 1) {
 		// If the event is complete, encode byte will return 1
 		printf("Encoded byte: %d\n", byte);
 		// Output the event
