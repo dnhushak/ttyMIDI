@@ -396,7 +396,7 @@ void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf) {
 void alsa_write_byte(snd_seq_t* seq, int port_out_id, unsigned char byte) {
 	// MIDI parser and encoder
 	snd_midi_event_t * parser;
-	snd_midi_event_new(64, &parser);
+	snd_midi_event_new(128, &parser);
 	// The event to send
 	snd_seq_event_t ev;
 	// Initialize event record
@@ -408,11 +408,14 @@ void alsa_write_byte(snd_seq_t* seq, int port_out_id, unsigned char byte) {
 	// Set broadcasting to subscribers
 	snd_seq_ev_set_subs(&ev);
 	printf("Attempting %d\n", byte);
+	// Encode the bytes to the event
 	if (snd_midi_event_encode_byte(parser, byte, &ev) == 1) {
-		printf("Encoded %d\n", byte);
+		// If the event is complete, encode byte will return 1
+		printf("Encoded byte: %d | # of chars read: %d | parser buffer size: %d\n", byte, parser->read, parser->bufsize);
+		// Output the event
+		snd_seq_event_output(seq, &ev);
+		snd_seq_drain_output(seq);
 	}
-	snd_seq_event_output(seq, &ev);
-	snd_seq_drain_output(seq);
 }
 
 void write_midi_action_to_serial_port(snd_seq_t* seq_handle) {
@@ -538,9 +541,7 @@ void* read_midi_from_alsa(void* seq) {
 }
 
 void* read_midi_from_serial_port(void* seq) {
-	char buf;
-	char msg[MAX_MSG_SIZE];
-	int msglen;
+	unsigned char buf;
 	
 	/* Lets first fast forward to first status byte... */
 	if (!arguments.printonly) {
@@ -550,12 +551,11 @@ void* read_midi_from_serial_port(void* seq) {
 	}
 
 	while (run) {
+		read(serial, &buf, 1);
 		/* 
 		 * super-debug mode: only print to screen whatever
 		 * comes through the serial port.
 		 */
-
-		read(serial, &buf, 1);
 		if (arguments.printonly) {
 			printf("%x\t", (int) buf & 0xFF);
 			fflush(stdout);
