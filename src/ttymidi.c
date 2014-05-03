@@ -31,6 +31,8 @@
 // Alsa-Specific
 #include <asm/ioctls.h>
 #include <alsa/asoundlib.h>
+#include <linux/errno.h>
+#include <linux/string.h>
 
 #define FALSE                         0
 #define TRUE                          1
@@ -407,7 +409,7 @@ void alsa_write_byte(snd_seq_t* seq, int port_out_id, unsigned char byte,
 	// Set broadcasting to subscribers
 	snd_seq_ev_set_subs(&ev);
 	// Encode the bytes to the event
-	int res = snd_midi_event_encode_byte2(parser, byte, &ev);
+	int res = snd_midi_event_encode_byte(parser, byte, &ev);
 	printf("Encoded byte %d with outcome %d\n", byte, res);
 	if (res == 1) {
 		// If the event is complete, encode byte will return 1
