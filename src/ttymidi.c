@@ -415,8 +415,8 @@ void alsa_write_byte(snd_seq_t* seq, int port_out_id, unsigned char byte) {
 		printf("Encoded byte: %d\n", byte);
 		// Output the event
 		snd_seq_event_output(seq, &ev);
-		snd_seq_drain_output(seq);
 	}
+	snd_seq_drain_output(seq);
 }
 
 void write_midi_action_to_serial_port(snd_seq_t* seq_handle) {
