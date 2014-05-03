@@ -400,7 +400,6 @@ void alsa_write_byte(snd_seq_t* seq, int port_out_id, unsigned char byte) {
 	// The event to send
 	snd_seq_event_t ev;
 	// Initialize event record
-	snd_seq_ev_clear(&ev);
 	// Set direct passing mode (without queued)
 //	snd_seq_ev_set_direct(&ev);
 //	// Set the source port
@@ -416,6 +415,7 @@ void alsa_write_byte(snd_seq_t* seq, int port_out_id, unsigned char byte) {
 		// Output the event
 		snd_seq_event_output(seq, &ev);
 		snd_seq_drain_output(seq);
+	snd_seq_ev_clear(&ev);
 	}
 }
 
