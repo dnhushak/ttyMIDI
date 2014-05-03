@@ -395,7 +395,7 @@ void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf) {
 
 void alsa_write_byte(snd_seq_t* seq, int port_out_id, unsigned char byte) {
 	// MIDI parser and encoder
-	snd_midi_event_t * parser;
+	snd_midi_event * parser;
 	snd_midi_event_new(128, &parser);
 	// The event to send
 	snd_seq_event_t ev;
