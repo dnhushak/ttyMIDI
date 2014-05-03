@@ -395,7 +395,7 @@ void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf) {
 
 void alsa_write_byte(snd_seq_t* seq, int port_out_id, unsigned char byte) {
 	// MIDI parser and encoder
-	struct snd_midi_event * parser;
+	snd_midi_event_t * parser;
 	snd_midi_event_new(128, &parser);
 	// The event to send
 	snd_seq_event_t ev;
@@ -411,7 +411,7 @@ void alsa_write_byte(snd_seq_t* seq, int port_out_id, unsigned char byte) {
 	// Encode the bytes to the event
 	if (snd_midi_event_encode_byte(parser, byte, &ev) == 1) {
 		// If the event is complete, encode byte will return 1
-		printf("Encoded byte: %d | # of chars read: %d | parser buffer size: %d\n", byte, parser->read, parser->bufsize);
+		printf("Encoded byte: %d\n", byte);
 		// Output the event
 		snd_seq_event_output(seq, &ev);
 		snd_seq_drain_output(seq);
