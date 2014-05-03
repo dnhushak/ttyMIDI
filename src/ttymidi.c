@@ -392,7 +392,7 @@ void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf) {
 	snd_seq_drain_output(seq);
 }
 
-void alsa_write_byte(snd_seq_t* seq, int port_out_id, byte) {
+void alsa_write_byte(snd_seq_t* seq, int port_out_id, int byte) {
 	// MIDI parser and encoder
 	snd_midi_event_t * parser;
 	snd_midi_event_new(64, &parser);
@@ -408,7 +408,6 @@ void alsa_write_byte(snd_seq_t* seq, int port_out_id, byte) {
 	// Set broadcasting to subscribers
 	snd_seq_ev_set_subs(&ev);
 	if (snd_midi_event_encode_byte(parser, byte, &ev) == 1) {
-//		snd_seq_ev_set_dest(&ev, desc->client, port_out_id);
 		snd_seq_ev_set_direct(&ev);
 		snd_seq_event_output_direct(seq, &ev);
 		snd_seq_drain_output(seq);
