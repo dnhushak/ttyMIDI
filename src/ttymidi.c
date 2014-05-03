@@ -407,16 +407,12 @@ void alsa_write_byte(snd_seq_t* seq, int port_out_id, unsigned char byte) {
 	snd_seq_ev_set_source(&ev, port_out_id);
 	// Set broadcasting to subscribers
 	snd_seq_ev_set_subs(&ev);
-	printf("Encoding...\n");
+	printf("Attempting %d\n", byte);
 	if (snd_midi_event_encode_byte(parser, byte, &ev) == 1) {
-		printf("Encoded\n");
-		snd_seq_ev_set_direct(&ev);
-		printf("7\n");
-		snd_seq_event_output(seq, &ev);
-		printf("8\n");
-		snd_seq_drain_output(seq);
+		printf("Encoded %d\n", byte);
 	}
-	printf("...Sent\n");
+	snd_seq_event_output(seq, &ev);
+	snd_seq_drain_output(seq);
 }
 
 void write_midi_action_to_serial_port(snd_seq_t* seq_handle) {
