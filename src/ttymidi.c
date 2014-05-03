@@ -31,14 +31,6 @@
 // Alsa-Specific
 #include <asm/ioctls.h>
 #include <alsa/asoundlib.h>
-#include <linux/slab.h>
-#include <linux/errno.h>
-#include <linux/string.h>
-#include <linux/module.h>
-#include <sound/core.h>
-#include <sound/seq_kernel.h>
-#include <sound/seq_midi_event.h>
-#include <sound/asoundef.h>
 
 #define FALSE                         0
 #define TRUE                          1
@@ -402,10 +394,18 @@ void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf) {
 }
 
 void alsa_write_byte(snd_seq_t* seq, int port_out_id, unsigned char byte,
-		snd_seq_event_t ev) {
-	// MIDI parser and encoder
-	snd_midi_event_t * parser;
-	snd_midi_event_new(128, &parser);
+		snd_midi_event_t * parser) {
+
+	snd_seq_event_t ev;
+	// The event to send
+	// Initialize event record
+	// Set direct passing mode (without queued)
+	snd_seq_ev_set_direct(&ev);
+	// Set the source port
+	snd_seq_ev_set_source(&ev, port_out_id);
+	// Set broadcasting to subscribers
+	snd_seq_ev_set_subs(&ev);
+	// Encode the bytes to the event
 	int res = snd_midi_event_encode_byte2(parser, byte, &ev);
 	printf("Encoded byte %d with outcome %d\n", byte, res);
 	if (res == 1) {
@@ -418,72 +418,6 @@ void alsa_write_byte(snd_seq_t* seq, int port_out_id, unsigned char byte,
 	}
 }
 
-int snd_midi_event_encode_byte2(struct snd_midi_event *dev, int c,
-		struct snd_seq_event *ev) {
-	int rc = 0;
-	unsigned long flags;
-
-	c &= 0xff;
-
-	if (c >= MIDI_CMD_COMMON_CLOCK) {
-		/* real-time event */
-		ev->type = status_event[ST_SPECIAL + c - 0xf0].event;
-		ev->flags &= ~SNDRV_SEQ_EVENT_LENGTH_MASK;
-		ev->flags |= SNDRV_SEQ_EVENT_LENGTH_FIXED;
-		return ev->type != SNDRV_SEQ_EVENT_NONE;
-	}
-
-	spin_lock_irqsave(&dev->lock, flags);
-	if ((c & 0x80)
-			&& (c != MIDI_CMD_COMMON_SYSEX_END || dev->type != ST_SYSEX)) {
-		/* new command */
-		dev->buf[0] = c;
-		if ((c & 0xf0) == 0xf0) /* system messages */
-			dev->type = (c & 0x0f) + ST_SPECIAL;
-		else
-			dev->type = (c >> 4) & 0x07;
-		dev->read = 1;
-		dev->qlen = status_event[dev->type].qlen;
-	} else {
-		if (dev->qlen > 0) {
-			/* rest of command */
-			dev->buf[dev->read++] = c;
-			if (dev->type != ST_SYSEX)
-				dev->qlen--;
-		} else {
-			/* running status */
-			dev->buf[1] = c;
-			dev->qlen = status_event[dev->type].qlen - 1;
-			dev->read = 2;
-		}
-	}
-	if (dev->qlen == 0) {
-		ev->type = status_event[dev->type].event;
-		ev->flags &= ~SNDRV_SEQ_EVENT_LENGTH_MASK;
-		ev->flags |= SNDRV_SEQ_EVENT_LENGTH_FIXED;
-		if (status_event[dev->type].encode) /* set data values */
-			status_event[dev->type].encode(dev, ev);
-		if (dev->type >= ST_SPECIAL)
-			dev->type = ST_INVALID;
-		rc = 1;
-	} else if (dev->type == ST_SYSEX) {
-		if (c == MIDI_CMD_COMMON_SYSEX_END || dev->read >= dev->bufsize) {
-			ev->flags &= ~SNDRV_SEQ_EVENT_LENGTH_MASK;
-			ev->flags |= SNDRV_SEQ_EVENT_LENGTH_VARIABLE;
-			ev->type = SNDRV_SEQ_EVENT_SYSEX;
-			ev->data.ext.len = dev->read;
-			ev->data.ext.ptr = dev->buf;
-			if (c != MIDI_CMD_COMMON_SYSEX_END)
-				dev->read = 0; /* continue to parse */
-			else
-				reset_encode(dev); /* all parsed */
-			rc = 1;
-		}
-	}
-
-	spin_unlock_irqrestore(&dev->lock, flags);
-	return rc;
-}
 
 void write_midi_action_to_serial_port(snd_seq_t* seq_handle) {
 	snd_seq_event_t* ev;
@@ -609,16 +543,10 @@ void* read_midi_from_alsa(void* seq) {
 
 void* read_midi_from_serial_port(void* seq) {
 	unsigned char buf;
-	snd_seq_event_t ev;
-	// The event to send
-	// Initialize event record
-	// Set direct passing mode (without queued)
-	snd_seq_ev_set_direct(&ev);
-	// Set the source port
-	snd_seq_ev_set_source(&ev, port_out_id);
-	// Set broadcasting to subscribers
-	snd_seq_ev_set_subs(&ev);
-	// Encode the bytes to the event
+
+	// MIDI parser and encoder
+	snd_midi_event_t * parser;
+	snd_midi_event_new(128, &parser);
 	
 	/* Lets first fast forward to first status byte... */
 	if (!arguments.printonly) {
@@ -639,7 +567,7 @@ void* read_midi_from_serial_port(void* seq) {
 			continue;
 		}
 
-		alsa_write_byte(seq, port_out_id, buf, ev);
+		alsa_write_byte(seq, port_out_id, buf, parser);
 	}
 }
 
